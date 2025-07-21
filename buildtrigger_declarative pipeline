@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+    tools 
+    {
+        maven  "maven-3.9.9"
+    }
+    triggers {
+        githubPush()  // <-- This triggers on GitHub push events
+    }
+
+    stages { 
+        stage('Git checkout') {
+            steps {
+                git branch: 'development', url: 'https://github.com/KGDevops-b5may/maven-webapp-project-kgdevops.git'
+            }
+        }
+        
+        stage('COMPILE') {
+            steps {
+              sh "mvn clean compile"  
+            }
+        }
+    
+       stage('Build') {
+           steps {
+               sh "mvn package" 
+           }
+       }
+
+        stage('Sonarqube report') {
+            steps {
+                sh "mvn sonar:sonar"
+            }
+        }
+
+        stage('Deploy to Nexus') {
+            steps {
+                sh "mvn deploy"
+            }
+        }
+        
+        stage('Deploy to Tomcat') {
+            steps {
+                sh """
+                
+                curl -u nagesh:password \
+                --upload-file /var/lib/jenkins/workspace/jio-Declarative-PL/target/maven-web-application.war \
+                    "http://13.201.156.119:9090//manager/text/deploy?path=/maven-web-application&update=true"
+                    
+                    """
+            }
+        }
+    
+    } // stages ending
+} // pipeline ending
